@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block start %}
+<div class="bg-gradient-to-b from-green-100 to-white min-h-screen flex items-center justify-center">
+
+  <div class="max-w-md w-full px-6 py-8 bg-white shadow-xl rounded-3xl text-center space-y-6">
+    <div>
+      <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" alt="Chat Logo" class="w-20 mx-auto mb-4">
+      <h1 class="text-3xl font-bold text-green-600">Welcome to ChatApplication</h1>
+      <p class="text-gray-600 mt-2 text-sm">Connect, chat, and call your friends seamlessly.</p>
+    </div>
+
+    <div class="flex flex-col space-y-4 mt-6">
+      <a href="{% url 'signup' %}" class="w-full py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition">Sign Up</a>
+      <a href="{% url 'login' %}" class="w-full py-3 rounded-xl border border-green-600 text-green-600 font-semibold hover:bg-green-50 transition">Log In</a>
+    </div>
+
+    <div class="text-xs text-gray-400 mt-4">
+      © {{ now|date:"Y" }} ChatApplication. All rights reserved.
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
