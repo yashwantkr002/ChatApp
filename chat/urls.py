@@ -13,5 +13,5 @@ urlpatterns = [
     path('otp-verify-reset/', user_views.otp_verify_reset_view, name='otp-verify-reset'),
     path('resend-otp-reset/', user_views.resend_otp_reset_view, name='resend-otp-reset'),
     path('reset-password/', user_views.reset_password_view, name='reset-password'),
-    # path('profile/', user_views.profile_view, name='profile'),
+    path('complete-profile/', user_views.complete_profile_view, name='complete-profile'),
 ]

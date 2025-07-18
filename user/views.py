@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import CustomUser
 from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.decorators import login_required
 import time
 import pyotp
 import re
@@ -218,7 +219,11 @@ def login_view(request):
             if user.is_verified:
                 login(request, user)
                 messages.success(request, 'Login successful!')
-                return redirect('/')  # Replace with your homepage
+                if user.first_name not in [None, '']:
+                    return redirect('home')
+                else:
+                    messages.info(request, 'Please complete your profile.')
+                    return redirect('complete-profile')  # Replace with your homepage
             else:
                 messages.error(request, 'Account not verified via OTP. Please verify first.')
         else:
@@ -389,3 +394,38 @@ def logout_view(request):
     logout(request)
     messages.success(request, "You have been logged out.")
     return redirect('login')  
+
+
+
+# complete profile view
+@login_required
+def complete_profile_view(request):
+    try:
+        user = request.user
+
+        if request.method == "POST":
+            first_name = request.POST.get("first_name", "").strip()
+            last_name = request.POST.get("last_name", "").strip()
+            bio = request.POST.get("bio", "").strip()
+
+            
+            if not first_name or not last_name:
+                messages.error(request, "First name and last name are required.")
+                return render(request, "complete_profile.html", context={'user': user})
+
+            try:
+                user.first_name = first_name
+                user.last_name = last_name
+                user.bio = bio
+                user.save()
+                messages.success(request, "Profile updated successfully.")
+                return redirect("home")  # Redirect to home/dashboard
+            except Exception as e:
+                messages.error(request, f"Failed to update profile. Please try again later. {e}")
+                return render(request, "complete_profile.html", context={'user': user})
+        return render(request, "complete_profile.html", context={'user': user})
+
+    except Exception as e:
+        messages.error(request, f"An unexpected error occurred. {e}")
+        return redirect("login")  # Redirect to login if something fails badly
+
