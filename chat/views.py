@@ -33,15 +33,22 @@ def chat_home_view(request):
 def chat_detail_view(request, user_id):
     try:
         other_user = get_object_or_404(CustomUser, id=user_id)
-        print(other_user)
         private_chat = PrivateChat.objects.filter(participants=request.user)\
                                           .filter(participants=other_user).first()
-        print(private_chat)
+        
         if not private_chat:
-            return HttpResponse("No private chat found.", status=404)
+            private_chat = PrivateChat.objects.create()
+            private_chat.participants.add(request.user, other_user)
 
+            # Optional: add a default welcome message
+            Message.objects.create(
+                private_chat=private_chat,
+                sender=request.user,
+                content=f"Chat with {other_user.first_name} started!"
+            )
         messages_qs = Message.objects.filter(private_chat=private_chat).order_by('timestamp')
         
+        # HTMX request handling
         if request.headers.get("HX-Request"):
             html = render_to_string('chat_detail.html', {
                 'chat': private_chat,
@@ -49,7 +56,6 @@ def chat_detail_view(request, user_id):
                 'other_user': other_user
             }, request=request)
             return HttpResponse(html)
-
         return render(request, 'chat_detail.html', {
             'chat': private_chat,
             'messages': messages_qs,
@@ -57,6 +63,7 @@ def chat_detail_view(request, user_id):
         })
 
     except Exception as e:
+        traceback.print_exc()
         return HttpResponse(f"Error: {str(e)}", status=500)
 
 

@@ -1,30 +1,64 @@
 <!-- This file should NOT extend base.html -->
 <div class="flex flex-col h-screen">
-  <!-- Header -->
+  <!-- Header with Video/Audio Call and Options -->
   <div class="flex items-center justify-between p-4 bg-[#00a63e] text-white shadow">
+    <!-- User Info -->
     <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 rounded-full bg-white text-[#00a63e] flex items-center justify-center font-bold">
-        {{ contact.name|slice:":1" }}
+      {% if other_user.profile_picture %}
+        <img src="{{ other_user.profile_picture }}" alt="{{ other_user.first_name }}" class="w-10 h-10 rounded-full object-cover" />
+      {% else %}
+        <div class="w-10 h-10 rounded-full bg-white text-[#00a63e] flex items-center justify-center font-bold">
+          {{ other_user.first_name|slice:":1"|upper }}
+        </div>
+      {% endif %}
+      <p class="text-lg font-semibold">{{ other_user.first_name }}</p>
+    </div>
+
+    <!-- Call + More Options -->
+    <div class="flex items-center space-x-4">
+      <!-- Audio Call -->
+      <button title="Audio Call" class="hover:text-gray-200">
+        <i data-feather="phone" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Video Call -->
+      <button title="Video Call" class="hover:text-gray-200">
+        <i data-feather="video" class="w-5 h-5"></i>
+      </button>
+
+      <!-- More Options -->
+      <div class="relative group">
+        <button title="Options">
+          <i data-feather="more-vertical" class="w-5 h-5"></i>
+        </button>
+        <div class="absolute right-0 mt-2 w-40 bg-white text-black rounded shadow-lg hidden group-hover:block z-10">
+          <a href="#" class="block px-4 py-2 hover:bg-gray-100">Change Theme</a>
+          <a href="#" class="block px-4 py-2 hover:bg-gray-100">Mute Notifications</a>
+          <a href="#" class="block px-4 py-2 hover:bg-gray-100">Report User</a>
+        </div>
       </div>
-      <p class="text-lg font-semibold">{{ contact.name }}</p>
     </div>
   </div>
 
-  <!-- Messages -->
-  <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-[#f0f2f5]">
+  <!-- Messages Area -->
+  <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-[#f0f2f5]" id="chat-area">
     {% for message in messages %}
       {% if message.sender == request.user %}
         <div class="flex justify-end">
           <div class="bg-[#00a63e] text-white px-4 py-2 rounded-xl text-sm max-w-xs">
             {{ message.content }}
-            <div class="text-[10px] text-right mt-1 opacity-80">{{ message.timestamp|time:"H:i" }}</div>
+            <div class="text-[10px] text-right mt-1 opacity-80">
+              {{ message.timestamp|time:"H:i" }}
+            </div>
           </div>
         </div>
       {% else %}
         <div class="flex justify-start">
           <div class="bg-white px-4 py-2 rounded-xl text-sm max-w-xs border border-gray-200">
             {{ message.content }}
-            <div class="text-[10px] text-right mt-1 opacity-60">{{ message.timestamp|time:"H:i" }}</div>
+            <div class="text-[10px] text-right mt-1 opacity-60">
+              {{ message.timestamp|time:"H:i" }}
+            </div>
           </div>
         </div>
       {% endif %}
@@ -32,11 +66,38 @@
   </div>
 
   <!-- Message Input -->
-  <form method="POST" hx-post="{% url 'send_message' contact.id %}" hx-target="#chat-area" hx-swap="outerHTML"
-    class="p-4 border-t bg-white flex items-center gap-3">
+  <form method="POST" enctype="multipart/form-data"
+        hx-post="##"
+        hx-target="#chat-area"
+        hx-swap="outerHTML"
+        class="p-4 border-t bg-white flex items-center gap-2">
     {% csrf_token %}
-    <input type="text" name="message" required placeholder="Type a message"
-      class="flex-1 px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00a63e]" />
-    <button type="submit" class="bg-[#00a63e] text-white px-4 py-2 rounded-full">Send</button>
+
+    <!-- Emoji Button -->
+    <button type="button" title="Emoji" class="text-gray-500 hover:text-[#00a63e] text-xl">😊</button>
+
+    <!-- Attachment -->
+    <label class="cursor-pointer text-gray-500 hover:text-[#00a63e]">
+      <i data-feather="paperclip" class="w-5 h-5"></i>
+      <input type="file" name="attachment" class="hidden" />
+    </label>
+
+    <!-- Message Input -->
+    <input
+      type="text"
+      name="message"
+      required
+      placeholder="Type a message"
+      class="flex-1 px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00a63e]"
+    />
+
+    <!-- Send Button -->
+    <button type="submit" class="bg-[#00a63e] text-white px-4 py-2 rounded-full">
+      Send
+    </button>
   </form>
+
+  <script>
+    feather.replace()
+  </script>
 </div>
