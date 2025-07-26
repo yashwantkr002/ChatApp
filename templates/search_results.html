@@ -1,0 +1,28 @@
+{% if error %}
+  <p class="text-red-500 text-sm">{{ error }}</p>
+{% else %}
+  {% if results %}
+    {% for user in results %}
+      <div class="cursor-pointer hover:bg-gray-100 px-4 py-2 flex items-center justify-between border-b border-gray-200">
+        <div class="flex items-center">
+          <div class="w-8 h-8 rounded-full bg-[#00a63e] flex items-center justify-center text-white font-bold">
+            {{ user.first_name|slice:":1"|upper }}
+          </div>
+          <div class="ml-3">
+            <p class="text-sm font-medium text-gray-900">{{ user.first_name }}</p>
+            <p class="text-xs text-gray-500">{{ user.email }} | {{ user.phone_number }}</p>
+          </div>
+        </div>
+        <!-- Add Friend Button -->
+        <form hx-post="{% url 'add_friend' user.id %}" hx-target="#search-results" hx-swap="outerHTML">
+          {% csrf_token %}
+          <button class="text-white bg-green-500 hover:bg-green-600 rounded-full w-7 h-7 flex items-center justify-center">
+            +
+          </button>
+        </form>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-gray-500 text-sm">No users found for "{{ query }}".</p>
+  {% endif %}
+{% endif %}

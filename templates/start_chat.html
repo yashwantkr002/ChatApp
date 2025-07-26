@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-10 mx-auto max-w-3xl">
+  <h2 class="text-2xl font-bold mb-6 text-center">Start a Private Chat</h2>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="text-red-600 text-center mb-4">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <ul class="space-y-4">
+    {% for user in users %}
+      <li class="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div class="flex items-center space-x-4">
+          <img src="{{ user.profile_picture.url|default:'https://cdn-icons-png.flaticon.com/512/847/847969.png' }}"
+               class="w-10 h-10 rounded-full object-cover" alt="{{ user.first_name }}">
+          <span class="font-medium">{{ user.first_name }} {{ user.last_name }}</span>
+        </div>
+        <form method="POST" action="{% url 'start_chat' %}">
+          {% csrf_token %}
+          <input type="hidden" name="user_id" value="{{ user.id }}">
+          <button type="submit"
+                  class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">
+            Start Chat
+          </button>
+        </form>
+      </li>
+    {% empty %}
+      <p class="text-center text-gray-500">No other users available to chat.</p>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

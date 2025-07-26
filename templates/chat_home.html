@@ -1,0 +1,118 @@
+{% extends 'base.html' %} {% block start %}
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<div class="flex h-screen bg-[#f0f2f5]">
+  <!-- Sidebar -->
+  <div
+    class="w-full md:w-1/3 lg:w-1/4 bg-white border-r border-gray-300 flex flex-col"
+  >
+    <div
+      class="p-4 flex items-center justify-between bg-[#00a63e] text-white shadow relative"
+    >
+      <h1 class="text-lg font-semibold">Chat App</h1>
+      <div x-data="{ open: false }" class="relative">
+        <button @click="open = !open" aria-label="Menu">
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+        <div
+          x-show="open"
+          @click.away="open = false"
+          x-transition
+          class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 text-gray-800"
+        >
+          <a href="##" class="block px-4 py-2 hover:bg-gray-100">Account</a>
+          <a href="##" class="block px-4 py-2 hover:bg-gray-100">Privacy</a>
+          <a href="##" class="block px-4 py-2 hover:bg-gray-100">Avatar</a>
+          <a href="##" class="block px-4 py-2 hover:bg-gray-100">List Chats</a>
+          <a
+            href="{% url 'logout' %}"
+            class="block px-4 py-2 hover:bg-gray-100 text-red-600"
+            >Logout</a
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="p-4 border-b border-gray-300 bg-gray-50">
+      <form
+        hx-post="{% url 'search_user' %}"
+        hx-target="#search-results"
+        hx-swap="innerHTML"
+        hx-indicator="#search-loading"
+      >
+        {% csrf_token %}
+        <input
+          type="text"
+          name="query"
+          placeholder="Search by phone or email"
+          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:border-blue-300"
+          minlength="2"
+          required
+        />
+        <div id="search-loading" class="htmx-indicator hidden">
+          Searching...
+        </div>
+      </form>
+    </div>
+
+    <!-- Search Results -->
+    <div id="search-results" class="px-4 space-y-2 mt-2"></div>
+
+    <!-- Contact List -->
+    <div class="overflow-y-auto flex-1">
+      {% for contact in contacts %}
+      <div
+        class="cursor-pointer hover:bg-gray-100 px-4 py-3 flex items-center border-b border-gray-200"
+        hx-get="{% url 'chat_detail' contact.id %}"
+        hx-target="#chat-area"
+        hx-swap="innerHTML"
+      >
+        {% if contact.profile_picture %}
+        <img
+          src="{{ contact.profile_picture }}"
+          alt="{{ contact.name }}"
+          class="w-10 h-10 rounded-full object-cover"
+        />
+        {% else %}
+        
+        <div
+          class="w-10 h-10 rounded-full bg-[#00a63e] flex items-center justify-center text-white font-bold"
+        >
+          {{ contact.name|slice:":1"|upper }}
+        </div>
+        {% endif %}
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-900">{{ contact.name }}</p>
+          <p class="text-xs text-gray-500 truncate">
+            {{ contact.last_message|default:"No message yet" }}
+          </p>
+        </div>
+      </div>
+      {% empty %}
+      <p class="text-center text-gray-500 mt-4">
+        Start a conversation by searching for a contact.
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Chat Area Placeholder -->
+  <div id="chat-area" class="hidden md:block md:w-2/3 lg:w-3/4 bg-white">
+    <div class="h-full flex items-center justify-center text-gray-400">
+      <p>Select a contact to view messages</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

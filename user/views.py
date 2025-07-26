@@ -94,7 +94,10 @@ def signup_view(request):
             # Generate pyotp secret & OTP
             otp_secret = pyotp.random_base32()
             otp = pyotp.TOTP(otp_secret).now()
-
+            if request.session.get('otp_secret'):
+                del request.session['otp_secret']
+                del request.session['otp_timestamp']
+                del request.session['user_id']
             # Save secret and user_id in session
             request.session['otp_secret'] = otp_secret
             request.session['otp_timestamp'] = int(time.time()) 
@@ -151,9 +154,8 @@ def otp_verify_view(request):
                     # Cleanup session
                     for key in ['otp_secret', 'otp_timestamp', 'user_id']:
                         request.session.pop(key, None)
-
-                    messages.success(request, 'OTP verified. You are now logged in.')
-                    return redirect('home')
+                    messages.success(request, 'Complete your profile.')
+                    return redirect('complete-profile')
                 except (CustomUser.DoesNotExist, ValueError):
                     messages.error(request, 'User not found.')
                     return redirect('signup')
@@ -180,7 +182,10 @@ def resend_otp_view(request):
         # Step 2: Generate new OTP
         otp_secret = pyotp.random_base32()
         otp = pyotp.TOTP(otp_secret).now()
-
+        # Step 3: Clear existing OTP session data
+        if request.session.get('otp_secret'):
+                del request.session['otp_secret']
+                del request.session['otp_timestamp']
         # Step 3: Store OTP info in session
         request.session['otp_secret'] = otp_secret
         request.session['otp_timestamp'] = int(time.time())
@@ -220,12 +225,29 @@ def login_view(request):
                 login(request, user)
                 messages.success(request, 'Login successful!')
                 if user.first_name not in [None, '']:
-                    return redirect('home')
+                    print("enter homepage")
+                    return redirect('/home/')
                 else:
                     messages.info(request, 'Please complete your profile.')
                     return redirect('complete-profile')  # Replace with your homepage
             else:
-                messages.error(request, 'Account not verified via OTP. Please verify first.')
+                # Step 2: Generate new OTP
+                    otp_secret = pyotp.random_base32()
+                    otp = pyotp.TOTP(otp_secret).now()
+                # Step 3: Clear existing OTP session data
+                    if request.session.get('otp_secret'):
+                        del request.session['otp_secret']
+                        del request.session['otp_timestamp']
+                     # Step 3: Store OTP info in session
+                    request.session['otp_secret'] = otp_secret
+                    request.session['otp_timestamp'] = int(time.time())
+
+                # Step 4: Send OTP via email
+                    send_otp_email(user.email, otp)
+
+                   # Step 5: Notify user
+                    messages.success(request, f"A new OTP has been sent. Please check your email: {user.email}")
+                    return redirect('otp-verify')
         else:
             messages.error(request, 'Invalid credentials.')
 
@@ -240,14 +262,16 @@ def forget_password_view(request):
             # Generate OTP and send it to the user's phone
             otp_secret = pyotp.random_base32()
             otp = pyotp.TOTP(otp_secret).now()
-            # Replace with SMS send logic
-            print(f"🔁 OTP for password reset: {otp} and type of OTP: {type(otp)}")  
-            send_otp_email(user.email, otp)  # Send OTP via email
+            if request.session.get('otp_secret'):
+                del request.session['otp_secret']
+                del request.session['otp_timestamp']
             # Save OTP secret in session
             request.session['otp_secret'] = otp_secret
             request.session['otp_timestamp'] = int(time.time())
             request.session['user_id'] = user.id
 
+            # Replace with SMS send logic  
+            send_otp_email(user.email, otp)  # Send OTP via email
             messages.success(request, f'OTP sent to your Email: {user.email}. Please verify.')
             return redirect('otp-verify-reset')
         except CustomUser.DoesNotExist:
@@ -319,7 +343,10 @@ def resend_otp_reset_view(request):
         # Generate new OTP and update session
         otp_secret = pyotp.random_base32()
         otp = pyotp.TOTP(otp_secret).now()
-
+        # Clear existing OTP session data
+        if request.session.get('otp_secret'):
+                del request.session['otp_secret']
+                del request.session['otp_timestamp']
         request.session['otp_secret'] = otp_secret
         request.session['otp_timestamp'] = int(time.time())
         # Send via SMS/email in real application

@@ -3,7 +3,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import CustomUser
-from chat.models import Group, Message, FileMessage
+from chat.models import *
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
@@ -16,4 +16,7 @@ admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Group)
 admin.site.register(Message)
 admin.site.register(FileMessage)
+admin.site.register(Friend)
+admin.site.register(PrivateChat)
+
 
