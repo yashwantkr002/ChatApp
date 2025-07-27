@@ -11,6 +11,10 @@ import traceback
 
 
 def index(request):
+    if request.user.is_authenticated:
+        # Redirect to home page if logged in
+        return redirect('home')
+     # If not logged in, show the index page
     return render(request, 'index.html')
 
 # @login_required

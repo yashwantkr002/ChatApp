@@ -1,6 +1,7 @@
 // const roomId = "{{ room.id }}";  // Use your Django context here
 const roomId = "Abc";  // Use your Django context here
-const username = "{{ request.user.username }}";
+// const username = "{{ request.user.username }}";
+const username = "yashwantkr002";
 const socket = new WebSocket(`ws://${window.location.host}/ws/chat/${roomId}/`);
 
 let localStream;
@@ -25,14 +26,13 @@ const chatArea = document.getElementById("chat-area");
 // Send message
 sendButton.addEventListener("click", () => {
   const message = messageInput.value.trim();
-  console.log(message)
   if (message !== "") {
     socket.send(JSON.stringify({
       type: "message",
       message: message,
       username: username
     }));
-    appendMessage(username, message); // Instant display
+    // appendMessage(username, message); // Instant display
     messageInput.value = "";
   }
 });
@@ -61,7 +61,7 @@ function appendMessage(sender, message) {
 
   msgDiv.className = `flex ${isMine ? "justify-end" : "justify-start"}`;
   msgDiv.innerHTML = `
-    <div class="${isMine ? "bg-[#00a63e] text-white" : "bg-white border border-gray-200"} px-4 py-2 rounded-xl text-sm max-w-xs">
+    <div class="${isMine ? "bg-[#00a63e] text-white" : "bg-white border border-gray-200"} px-4 py-2  my-1 rounded-xl text-sm max-w-xs">
       ${message}
       <div class="text-[10px] text-right mt-1 opacity-60">${time}</div>
     </div>
