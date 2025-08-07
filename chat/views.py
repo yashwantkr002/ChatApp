@@ -17,7 +17,7 @@ def index(request):
      # If not logged in, show the index page
     return render(request, 'index.html')
 
-# @login_required
+@login_required(login_url='/login/')  
 def chat_home_view(request):
     try:
         friends = Friend.objects.filter(Q(from_user=request.user) | Q(to_user=request.user))
@@ -52,18 +52,21 @@ def chat_detail_view(request, user_id):
             )
         messages_qs = Message.objects.filter(private_chat=private_chat).order_by('timestamp')
         
-        # HTMX request handling
-        if request.headers.get("HX-Request"):
-            html = render_to_string('chat_detail.html', {
-                'chat': private_chat,
-                'messages': messages_qs,
-                'other_user': other_user
-            }, request=request)
-            return HttpResponse(html)
+        friends = Friend.objects.filter(Q(from_user=request.user) | Q(to_user=request.user))
+        contacts = []
+        for friend in friends:
+            if friend.from_user == request.user:
+                contacts.append({'id': friend.to_user.id, 'name': friend.to_user.first_name, 'last_message': 'Hey, what\'s up?', 'profile_picture': friend.to_user.profile_picture})
+            else:
+                contacts.append({'id': friend.from_user.id, 'name': friend.from_user.first_name, 'last_message': 'Hey, what\'s up?', 'profile_picture': friend.from_user.profile_picture})
+        room_id = private_chat.get_room_id()
+        print(f"Room ID: {room_id}")
         return render(request, 'chat_detail.html', {
-            'chat': private_chat,
+            'private_chat': private_chat,
             'messages': messages_qs,
-            'other_user': other_user
+            'other_user': other_user,
+            'contacts': contacts,
+            'room_id': room_id
         })
 
     except Exception as e:

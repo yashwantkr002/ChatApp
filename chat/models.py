@@ -14,6 +14,11 @@ class PrivateChat(models.Model):
     participants = models.ManyToManyField(CustomUser, related_name='private_chats')
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def get_room_id(self):
+        # Get the two user IDs, sort them, and join with an underscore
+        user_ids = sorted(self.participants.values_list('id', flat=True))
+        return f"room_{user_ids[0]}_{user_ids[1]}"
+
 class Message(models.Model):
     # Supports both private and group chat
     group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True, blank=True)

@@ -1,20 +1,6 @@
 {% extends 'base.html' %} {% block start %}
+{% load static %}
 <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-<script>
-  document.body.addEventListener('htmx:afterSwap', (e) => {
-    const chatArea = document.getElementById('chat-area');
-    const contactList = document.getElementById('contact-list');
-    if (window.innerWidth < 768) {
-      chatArea.classList.remove('hidden');
-      contactList.classList.add('hidden');
-    }
-  });
-
-  function backToContacts() {
-    document.getElementById('chat-area').classList.add('hidden');
-    document.getElementById('contact-list').classList.remove('hidden');
-  }
-</script>
 <div class="flex h-screen bg-[#f0f2f5]">
   <!-- Sidebar -->
   <div
@@ -88,39 +74,41 @@
 
     <!-- Contact List -->
     <div class="overflow-y-auto flex-1">
-      {% for contact in contacts %}
-      <div
-        class="cursor-pointer hover:bg-gray-100 px-4 py-3 flex items-center border-b border-gray-200"
-        hx-get="{% url 'chat_detail' contact.id %}"
-        hx-target="#chat-area"
-        hx-swap="innerHTML"
-      >
-        {% if contact.profile_picture %}
+  {% for contact in contacts %}
+    <a
+      href="{% url 'chat_detail' contact.id %}"
+      class="flex items-center gap-4 px-4 py-3 border-b border-gray-200 hover:bg-gray-100 transition duration-150"
+    >
+      {% if contact.profile_picture %}
         <img
           src="{{ contact.profile_picture }}"
           alt="{{ contact.name }}"
-          class="w-10 h-10 rounded-full object-cover"
+          class="w-12 h-12 rounded-full object-cover shadow-sm"
         />
-        {% else %}
+      {% else %}
         <div
-          class="w-10 h-10 rounded-full bg-[#00a63e] flex items-center justify-center text-white font-bold"
+          class="w-12 h-12 rounded-full bg-[#00a63e] flex items-center justify-center text-white font-semibold text-lg shadow-sm"
         >
           {{ contact.first_name|slice:":1"|upper }}
         </div>
-        {% endif %}
-        <div class="ml-4">
-          <p class="text-sm font-medium text-gray-900">{{ contact.name }}</p>
-          <p class="text-xs text-gray-500 truncate">
-            {{ contact.last_message|default:"No message yet" }}
-          </p>
-        </div>
+      {% endif %}
+
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-gray-900 truncate">
+          {{ contact.name }}
+        </p>
+        <p class="text-xs text-gray-500 truncate">
+          {{ contact.last_message|default:"No message yet" }}
+        </p>
       </div>
-      {% empty %}
-      <p class="text-center text-gray-500 mt-4">
-        Start a conversation by searching for a contact.
-      </p>
-      {% endfor %}
-    </div>
+    </a>
+  {% empty %}
+    <p class="text-center text-gray-500 mt-4">
+      Start a conversation by searching for a contact.
+    </p>
+  {% endfor %}
+</div>
+
   </div>
 
   <!-- Chat Area Placeholder -->
@@ -140,5 +128,26 @@
     </div>
   </div>
 </div>
+<!--  ===========  JavaScrip Functions  ============= -->
+<script>
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    const chatArea = document.getElementById('chat-area');
+    const contactList = document.getElementById('contact-list');
+    if (window.innerWidth < 768) {
+      chatArea.classList.remove('hidden');
+      contactList.classList.add('hidden');
+    }
+  });
+
+  function backToContacts() {
+    document.getElementById('chat-area').classList.add('hidden');
+    document.getElementById('contact-list').classList.remove('hidden');
+  }
+</script>
 
 {% endblock %}
+
+
+
+
+

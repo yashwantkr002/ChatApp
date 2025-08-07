@@ -417,6 +417,7 @@ def reset_password_view(request):
 
 
 # Logout view
+@login_required(login_url='/login/')  
 def logout_view(request):
     logout(request)
     messages.success(request, "You have been logged out.")
@@ -425,7 +426,7 @@ def logout_view(request):
 
 
 # complete profile view
-@login_required
+@login_required(login_url='/login/')  
 def complete_profile_view(request):
     try:
         user = request.user
