@@ -1,4 +1,5 @@
 import json
+import base64
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 
@@ -12,17 +13,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive(self, text_data):
-        """
-        Handles incoming WebSocket messages from client.
-        Supports:
-        - typing
-        - message
-        - read
-        - call
-        - webrtc_offer
-        - webrtc_answer
-        - ice_candidate
-        """
         try:
             data = json.loads(text_data)
             event_type = data.get("type")
@@ -36,11 +26,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 )
 
             elif event_type == "message":
-                message = data.get("message")
                 await self.channel_layer.group_send(
                     self.room_group_name, {
                         "type": "chat_message",
-                        "message": message,
+                        "message": data.get("message"),
+                        "user": self.scope['user'].username
+                    }
+                )
+
+            elif event_type == "media":
+                file_data = data.get("file", {})
+                # Optional: Save the file to disk or DB here
+                # decoded_bytes = base64.b64decode(file_data.get("data"))
+
+                await self.channel_layer.group_send(
+                    self.room_group_name, {
+                        "type": "chat_media",
+                        "file": file_data,
                         "user": self.scope['user'].username
                     }
                 )
@@ -71,9 +73,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     {
                         "type": "webrtc_offer",
                         "offer": data["offer"],
-                        "from": self.scope["user"].username
+                        "from": self.scope["user"].username,
+                        "callType": data.get("callType", "video")
                     }
                 )
+
             elif event_type == "webrtc_answer":
                 await self.channel_layer.group_send(
                     self.room_group_name,
@@ -83,6 +87,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "from": self.scope["user"].username
                     }
                 )
+
             elif event_type == "ice_candidate":
                 await self.channel_layer.group_send(
                     self.room_group_name,
@@ -92,27 +97,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "from": self.scope["user"].username
                     }
                 )
+
             else:
                 await self.send(text_data=json.dumps({"error": "Unknown event type"}))
+
         except Exception as e:
             await self.send(text_data=json.dumps({"error": str(e)}))
-    async def webrtc_offer(self, event):
-        await self.send(text_data=json.dumps(event))
 
-    async def webrtc_answer(self, event):
-        await self.send(text_data=json.dumps(event))
+    # ==================== Event Handlers ====================
 
-    async def ice_candidate(self, event):
-        await self.send(text_data=json.dumps(event))
-
-    # Typing indicator handler
     async def user_typing(self, event):
         await self.send(text_data=json.dumps({
             "type": "typing",
             "user": event["user"]
         }))
 
-    # Message broadcast handler
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
             "type": "message",
@@ -120,7 +119,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "user": event["user"]
         }))
 
-    # Read receipt broadcast handler
+    async def chat_media(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "media",
+            "file": event["file"],
+            "user": event["user"]
+        }))
+
     async def read_receipt(self, event):
         await self.send(text_data=json.dumps({
             "type": "read",
@@ -128,7 +133,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "user": event["user"]
         }))
 
-    # Notification sent from Django signal on message save
     async def new_message_notification(self, event):
         await self.send(text_data=json.dumps({
             "type": "notification",
@@ -138,21 +142,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "group_id": event["group_id"]
         }))
 
-    # Notification when user joins or leaves group
     async def group_notification(self, event):
         await self.send(text_data=json.dumps({
             "type": "notification",
-            "event": event["event"],  # "user_joined" or "user_left"
+            "event": event["event"],
             "user_id": event["user_id"],
             "group_id": event["group_id"]
         }))
 
-    # Video/audio call event notification
     async def call_notification(self, event):
         await self.send(text_data=json.dumps({
             "type": "notification",
             "event": "call",
-            "call_type": event["call_type"],  # video / audio
+            "call_type": event["call_type"],
             "from_user": event["from_user"],
             "to_user": event["to_user"]
         }))
+
+    async def webrtc_offer(self, event):
+        await self.send(text_data=json.dumps(event))
+
+    async def webrtc_answer(self, event):
+        await self.send(text_data=json.dumps(event))
+
+    async def ice_candidate(self, event):
+        await self.send(text_data=json.dumps(event))

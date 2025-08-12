@@ -1,18 +1,12 @@
-
 function initChatDetail() {
   const dataEl = document.getElementById("chat-detail");
   if (!dataEl) return;
-  const data = dataEl.dataset;
-  const username = data.username;
-  const roomId = data.roomid;
-  
-  let localStream;
-  let peerConnection;
-  const config = {
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-  };
 
-  // ========== DOM Elements ==============
+  const { username, roomid, targetUser } = dataEl.dataset;
+
+  let localStream, peerConnection;
+  const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
   const localVideo = document.getElementById("localVideo");
   const remoteVideo = document.getElementById("remoteVideo");
   const callScreen = document.getElementById("call-screen");
@@ -24,29 +18,27 @@ function initChatDetail() {
   const chatArea = document.getElementById("chat_area");
   const attachmentInput = document.getElementById("attachment-input");
 
-  let selectedFile = null;
-  let selectedFileBase64 = null;
+  let selectedFile = null,
+    selectedFileBase64 = null;
 
-  // ========== Message Handlers ==============
+  const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+  const socket = new WebSocket(
+    `${wsScheme}://${window.location.host}/ws/chat/${roomid}/`
+  );
+
+
+  /* -------------------- Messaging -------------------- */
   if (sendButton && messageInput) {
     sendButton.addEventListener("click", () => {
       const message = messageInput.value.trim();
       if (message !== "") {
-        socket.send(JSON.stringify({
-          type: "message",
-          message: message,
-          username: username
-        }));
-        // appendMessage(username, message); // Instant display
+        socket.send(JSON.stringify({ type: "message", message, username }));
         messageInput.value = "";
       }
     });
 
     messageInput.addEventListener("input", () => {
-      socket.send(JSON.stringify({
-        type: "typing",
-        user: username
-      }));
+      socket.send(JSON.stringify({ type: "typing", user: username }));
     });
 
     messageInput.addEventListener("keydown", (e) => {
@@ -60,51 +52,64 @@ function initChatDetail() {
   function appendMessage(sender, message) {
     const isMine = sender === username;
     const msgDiv = document.createElement("div");
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const time = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
     msgDiv.className = `flex ${isMine ? "justify-end" : "justify-start"}`;
     msgDiv.innerHTML = `
-      <div class="${isMine ? "bg-[#00a63e] text-white" : "bg-white border border-gray-200"} px-4 py-2  rounded-xl text-sm max-w-xs">
+      <div class="${
+        isMine ? "bg-[#00a63e] text-white" : "bg-white border border-gray-200"
+      } px-4 py-2 rounded-xl text-sm max-w-xs">
         ${message}
-        <sub class="text-[10px] text-right mt-1  opacity-60">${time}</sub>
+        <sub class="text-[10px] opacity-60">${time}</sub>
       </div>
     `;
-    chatArea.appendChild(msgDiv);
-    chatArea.scrollTop = chatArea.scrollHeight;
+    if (chatArea) {
+      chatArea.appendChild(msgDiv);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
   }
-
-  // ========== WebRTC Call Handlers ===========
+ /* -------------------- Call Handling -------------------- */
   if (audioCallBtn) audioCallBtn.onclick = () => startCall("audio");
   if (videoCallBtn) videoCallBtn.onclick = () => startCall("video");
   if (endCallBtn) endCallBtn.onclick = endCall;
 
   function startCall(callType) {
-    navigator.mediaDevices.getUserMedia({
-      video: callType === "video",
-      audio: true
-    }).then(stream => {
-      localStream = stream;
-      if (localVideo) localVideo.srcObject = stream;
-      if (callScreen) callScreen.classList.remove("hidden");
+    navigator.mediaDevices
+      .getUserMedia({ video: callType === "video", audio: true })
+      .then((stream) => {
+        localStream = stream;
+        if (localVideo) localVideo.srcObject = stream;
+        if (callScreen) callScreen.classList.remove("hidden");
 
-      createPeerConnection();
-      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        createPeerConnection();
+        localStream
+          .getTracks()
+          .forEach((track) => peerConnection.addTrack(track, localStream));
 
-      peerConnection.createOffer().then(offer => {
-        peerConnection.setLocalDescription(offer);
-        socket.send(JSON.stringify({
-          type: "webrtc_offer",
-          offer: offer,
-          from: username
-        }));
-      });
+        peerConnection.createOffer().then((offer) => {
+          peerConnection.setLocalDescription(offer);
+          socket.send(
+            JSON.stringify({
+              type: "webrtc_offer",
+              offer,
+              from: username,
+              callType,
+            })
+          );
+        });
 
-      socket.send(JSON.stringify({
-        type: "call",
-        call_type: callType,
-        target_user: "{{ other_user.username }}"
-      }));
-    }).catch(console.error);
+        socket.send(
+          JSON.stringify({
+            type: "call",
+            call_type: callType,
+            target_user: targetUser,
+          })
+        );
+      })
+      .catch(console.error);
   }
 
   function createPeerConnection() {
@@ -112,11 +117,13 @@ function initChatDetail() {
 
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
-        socket.send(JSON.stringify({
-          type: "ice_candidate",
-          candidate: event.candidate,
-          from: username
-        }));
+        socket.send(
+          JSON.stringify({
+            type: "ice_candidate",
+            candidate: event.candidate,
+            from: username,
+          })
+        );
       }
     };
 
@@ -125,19 +132,77 @@ function initChatDetail() {
     };
   }
 
+  function handleMediaMessage(data) {
+    const isMine = data.user === username;
+    const time = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `flex ${isMine ? "justify-end" : "justify-start"} my-1`;
+
+    const bubbleDiv = document.createElement("div");
+    bubbleDiv.className = `${
+      isMine ? "bg-[#00a63e] text-white" : "bg-white border border-gray-200"
+    } px-4 py-2 rounded-xl text-sm max-w-xs break-words`;
+
+    const byteCharacters = atob(data.file.data);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: data.file.type });
+    const fileUrl = URL.createObjectURL(blob);
+
+    if (data.file.type.startsWith("image/")) {
+      const img = document.createElement("img");
+      img.src = fileUrl;
+      img.style.maxWidth = "200px";
+      img.style.borderRadius = "8px";
+      bubbleDiv.appendChild(img);
+    } else if (data.file.type.startsWith("video/")) {
+      const video = document.createElement("video");
+      video.src = fileUrl;
+      video.controls = true;
+      video.style.maxWidth = "300px";
+      video.style.borderRadius = "8px";
+      bubbleDiv.appendChild(video);
+    } else {
+      const link = document.createElement("a");
+      link.href = fileUrl;
+      link.download = data.file.name;
+      link.textContent = `📄 ${data.file.name}`;
+      link.target = "_blank";
+      link.style.color = isMine ? "white" : "blue";
+      bubbleDiv.appendChild(link);
+    }
+
+    const timeEl = document.createElement("sub");
+    timeEl.className = "text-[10px] opacity-60 ml-2";
+    timeEl.textContent = time;
+    bubbleDiv.appendChild(timeEl);
+
+    msgDiv.appendChild(bubbleDiv);
+
+    if (chatArea) {
+      chatArea.appendChild(msgDiv);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+  }
+
   function endCall() {
     if (peerConnection) {
       peerConnection.close();
       peerConnection = null;
     }
     if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+      localStream.getTracks().forEach((track) => track.stop());
     }
     if (callScreen) callScreen.classList.add("hidden");
   }
 
-  // ========== WebSocket Message Handling ===========
-  const socket = new WebSocket(`ws://${window.location.host}/ws/chat/${roomId}/`);
   socket.onmessage = async function (e) {
     const data = JSON.parse(e.data);
 
@@ -145,87 +210,85 @@ function initChatDetail() {
       case "message":
         appendMessage(data.user, data.message);
         break;
-
       case "typing":
-        console.log(`${data.user} is typing...`); // You can show a typing indicator here
+        console.log(`${data.user} is typing...`);
         break;
-
+      case "media":
+        handleMediaMessage(data);
+        break;
       case "webrtc_offer":
-        if (data.from !== username) await handleOffer(data.offer);
+        if (data.from !== username)
+          await handleOffer(data.offer, data.callType);
         break;
-
       case "webrtc_answer":
-        if (data.from !== username) {
-          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-        }
+        if (data.from !== username)
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(data.answer)
+          );
         break;
-
       case "ice_candidate":
-        if (data.from !== username) {
-          await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-        }
+        if (data.from !== username)
+          await peerConnection.addIceCandidate(
+            new RTCIceCandidate(data.candidate)
+          );
         break;
-
-      case "read":
-        console.log("Message read:", data.message_id);
-        break;
-
-      case "notification":
-        console.log("Notification:", data.event);
-        break;
-
       default:
         console.warn("Unhandled event:", data);
     }
   };
 
-  async function handleOffer(offer) {
+  async function handleOffer(offer, callType = "video") {
     createPeerConnection();
 
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    navigator.mediaDevices
+      .getUserMedia({ video: callType === "video", audio: true })
       .then(async (stream) => {
         localStream = stream;
         if (localVideo) localVideo.srcObject = stream;
         if (callScreen) callScreen.classList.remove("hidden");
 
-        stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        stream
+          .getTracks()
+          .forEach((track) => peerConnection.addTrack(track, stream));
+        await peerConnection.setRemoteDescription(
+          new RTCSessionDescription(offer)
+        );
 
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
 
-        socket.send(JSON.stringify({
-          type: "webrtc_answer",
-          answer: answer,
-          from: username
-        }));
+        socket.send(
+          JSON.stringify({ type: "webrtc_answer", answer, from: username })
+        );
       });
   }
 
-  // ================ Document Display on Frontend ===============
   if (attachmentInput) {
     attachmentInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-
       reader.onload = function () {
         selectedFile = file;
-        selectedFileBase64 = reader.result.split(',')[1];
+        selectedFileBase64 = reader.result.split(",")[1];
 
-        const isImage = file.type.startsWith("image/");
         const fileThumb = document.getElementById("file-thumb");
-
-        if (isImage) {
-          fileThumb.innerHTML = `<img src="${reader.result}" class="w-full h-full object-cover" alt="preview" />`;
-        } else {
-          fileThumb.innerHTML = `<div class="w-full h-full flex items-center justify-center text-gray-400 text-xl">📄</div>`;
+        if (fileThumb) {
+          if (file.type.startsWith("image/")) {
+            fileThumb.innerHTML = `<img src="${reader.result}" class="w-full h-full object-cover" alt="preview" />`;
+          } else {
+            fileThumb.innerHTML = `<div class="w-full h-full flex items-center justify-center text-gray-400 text-xl">📄</div>`;
+          }
         }
 
-        document.getElementById("file-name").textContent = file.name;
-        document.getElementById("file-type").textContent = file.type || "Unknown type";
-        document.getElementById("file-preview").classList.remove("hidden");
+        if (document.getElementById("file-name"))
+          document.getElementById("file-name").textContent = file.name.split(".")[0];
+        if (document.getElementById("file-type"))
+          document.getElementById("file-type").textContent =
+            file.type || "Unknown type";
+        if (document.getElementById("file-preview"))
+          document.getElementById("file-preview").classList.remove("hidden");
       };
 
       reader.readAsDataURL(file);
@@ -235,22 +298,68 @@ function initChatDetail() {
   const removeFileBtn = document.getElementById("remove-file");
   if (removeFileBtn) {
     removeFileBtn.addEventListener("click", () => {
-      document.getElementById("file-thumb").innerHTML = "";
-      document.getElementById("file-name").textContent = "";
-      document.getElementById("file-type").textContent = "";
+      const thumb = document.getElementById("file-thumb");
+      if (thumb) thumb.innerHTML = "";
+      if (document.getElementById("file-name"))
+        document.getElementById("file-name").textContent = "";
+      if (document.getElementById("file-type"))
+        document.getElementById("file-type").textContent = "";
       selectedFile = null;
       selectedFileBase64 = null;
-      if (attachmentInput) attachmentInput.value = "";  // Reset file input
-      document.getElementById("file-preview").classList.add("hidden");
+      if (attachmentInput) attachmentInput.value = "";
+      if (document.getElementById("file-preview"))
+        document.getElementById("file-preview").classList.add("hidden");
+    });
+  }
+
+  const sendMediaFileBtn = document.getElementById("sendMediafile");
+  if (sendMediaFileBtn) {
+    sendMediaFileBtn.addEventListener("click", () => {
+      if (!selectedFile || !selectedFileBase64) {
+        alert("No file selected.");
+        return;
+      }
+
+      // Show "sending" animation in chat
+      const tempId = `temp-${Date.now()}`;
+      const sendingDiv = document.createElement("div");
+      sendingDiv.className = "flex justify-end my-1";
+      sendingDiv.innerHTML = `
+        <div id="${tempId}" class="bg-[#00a63e] text-white px-4 py-2 rounded-xl text-sm max-w-xs flex items-center gap-2">
+          📤 Sending ${selectedFile.name}...
+          <span class="animate-pulse">⏳</span>
+        </div>
+      `;
+      chatArea.scrollTop = chatArea.scrollHeight;
+
+      // Send file via WebSocket
+      socket.send(
+        JSON.stringify({
+          type: "media",
+          file: {
+            name: selectedFile.name,
+            type: selectedFile.type,
+            data: selectedFileBase64,
+          },
+          user: username,
+        })
+      );
+
+      // Clear preview
+      if (document.getElementById("file-thumb"))
+        document.getElementById("file-thumb").innerHTML = "";
+      if (document.getElementById("file-name"))
+        document.getElementById("file-name").textContent = "";
+      if (document.getElementById("file-type"))
+        document.getElementById("file-type").textContent = "";
+      selectedFile = null;
+      selectedFileBase64 = null;
+      if (attachmentInput) attachmentInput.value = "";
+      if (document.getElementById("file-preview"))
+        document.getElementById("file-preview").classList.add("hidden");
     });
   }
 }
 
-// Remove any top-level variable declarations to avoid redeclaration errors
-
-// Run on page load
-document.addEventListener('DOMContentLoaded', initChatDetail);
-// Run after HTMX swaps in new chat detail
-document.body.addEventListener('htmx:afterSwap', initChatDetail);
-
-
+document.addEventListener("DOMContentLoaded", initChatDetail);
+document.body.addEventListener("htmx:afterSwap", initChatDetail);

@@ -171,16 +171,45 @@
 
       <!-- File Preview Area -->
 <!-- File Preview (fixed above message input) -->
-<div id="file-preview" class="hidden p-2 border rounded bg-gray-50 text-sm fixed bottom-1 right-10 gap-3 mx-2 mb-1">
-  <div id="file-thumb" class="flex-shrink-0 w-[250px] h-[150px] bg-white border rounded overflow-hidden flex items-center justify-center">
+<div id="file-preview"
+  class="hidden fixed bottom-20 right-5 w-full max-w-sm md:max-w-md p-4 bg-white border border-gray-200 rounded-2xl shadow-lg flex flex-col md:flex-row items-center gap-4 animate-slide-up z-50">
+
+  <!-- Thumbnail -->
+  <div id="file-thumb"
+    class="w-full md:w-[200px] h-[150px] bg-gray-100 border rounded-xl overflow-hidden flex items-center justify-center">
     <!-- Image or icon will appear here -->
   </div>
-  <div class="flex-1 overflow-hidden">
-    <p id="file-name" class="truncate font-medium"></p>
-    <p id="file-type" class="text-xs text-gray-500"></p>
+
+  <!-- File Info -->
+  <div class="flex-1 text-center md:text-left">
+    <p id="file-name" class="truncate font-semibold text-gray-800 text-sm"></p>
+    <p id="file-type" class="text-xs text-gray-500 mt-1"></p>
   </div>
-  <button id="remove-file" class="text-red-500 ml-2 text-xs">✕</button>
+
+  <!-- Actions -->
+  <div class="flex gap-2 mt-2 md:mt-0">
+    <button id="remove-file"
+      class="px-3 py-1 text-xs font-medium text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition">
+      ✕
+    </button>
+    <button id="sendMediafile"
+      class="px-3 py-1 text-xs font-medium text-green-600 bg-green-100 rounded-full hover:bg-green-200 transition">
+      Send
+    </button>
+  </div>
 </div>
+
+<!-- Optional animation -->
+<style>
+@keyframes slide-up {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
+</style>
+
 
   </div>
 
