@@ -284,43 +284,72 @@
 
     <!-- Call Screen Overlay -->
     <div
-      id="call-screen"
-      class="hidden fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center"
+  id="call-screen"
+  class="hidden fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center"
+>
+  <!-- Remote Video Fullscreen -->
+  <video
+    id="remoteVideo"
+    autoplay
+    playsinline
+    class="absolute inset-0 w-full h-full object-cover"
+  ></video>
+
+  <!-- Local Video Small Thumbnail -->
+  <video
+    id="localVideo"
+    autoplay
+    muted
+    playsinline
+    class="absolute top-4 left-4 w-32 h-20 md:w-48 md:h-28 rounded-lg border-2 border-white shadow-lg object-cover"
+  ></video>
+
+  <!-- Controls Container -->
+  <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-4">
+    
+    <!-- Mute / Unmute Button -->
+    <button
+      id="toggle-mic"
+      class="flex items-center justify-center w-14 h-14 rounded-full bg-gray-700 hover:bg-gray-800 transition duration-300 shadow-md ring-2 ring-white"
+      title="Mute/Unmute"
     >
-      <!-- Remote Video Fullscreen -->
-      <video
-        id="remoteVideo"
-        autoplay
-        playsinline
-        class="absolute inset-0 w-full h-full object-cover"
-      ></video>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z" />
+        <path d="M19 11a7 7 0 0 1-14 0" stroke="white" stroke-width="2" fill="none"/>
+      </svg>
+    </button>
 
-      <!-- Local Video Small Thumbnail -->
-      <video
-        id="localVideo"
-        autoplay
-        muted
-        playsinline
-        class="absolute top-4 left-4 w-32 h-20 md:w-48 md:h-28 rounded-lg border-2 border-white shadow-lg object-cover"
-      ></video>
+    <!-- Camera On/Off Button -->
+    <button
+      id="toggle-camera"
+      class="flex items-center justify-center w-14 h-14 rounded-full bg-gray-700 hover:bg-gray-800 transition duration-300 shadow-md ring-2 ring-white"
+      title="Camera On/Off"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17 10.5V7a2 2 0 0 0-2-2H5A2 2 0 0 0 3 7v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4z" />
+      </svg>
+    </button>
 
-      <!-- End Call Button -->
-      <button
-        id="end-call"
-        class="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 transition duration-300 shadow-md ring-2 ring-white"
+    <!-- End Call Button -->
+    <button
+      id="end-call"
+      class="flex items-center justify-center w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 transition duration-300 shadow-md ring-2 ring-white"
+      title="End Call"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-7 w-7 text-white"
+        viewBox="0 0 24 24"
+        fill="currentColor"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-7 w-7 text-white"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-        >
-          <path
-            d="M21 15.46l-5.27-2.11a1 1 0 0 0-1.09.27l-2.11 2.36a16.1 16.1 0 0 1-7.38-7.38l2.36-2.11a1 1 0 0 0 .27-1.09L8.54 3H3v5.54l2.28.95a18.1 18.1 0 0 0 12.23 12.23l.95 2.28H21v-5.54z"
-          />
-        </svg>
-      </button>
-    </div>
+        <path
+          d="M21 15.46l-5.27-2.11a1 1 0 0 0-1.09.27l-2.11 2.36a16.1 16.1 0 0 1-7.38-7.38l2.36-2.11a1 1 0 0 0 .27-1.09L8.54 3H3v5.54l2.28.95a18.1 18.1 0 0 0 12.23 12.23l.95 2.28H21v-5.54z"
+        />
+      </svg>
+    </button>
+  </div>
+</div>
+
 
     <!-- Call Controls -->
   </div>
