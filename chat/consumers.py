@@ -33,7 +33,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "user": self.scope['user'].username
                     }
                 )
-
+            
             elif event_type == "media":
                 file_data = data.get("file", {})
                 # Optional: Save the file to disk or DB here
@@ -46,7 +46,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "user": self.scope['user'].username
                     }
                 )
-
+            elif event_type == "call_end":
+            # Broadcast to everyone in the room that the call has ended
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "call_end",
+                        "from_user": self.scope["user"].username
+                    }
+                )
             elif event_type == "read":
                 await self.channel_layer.group_send(
                     self.room_group_name, {
@@ -66,6 +74,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "to_user": data["target_user"]
                     }
                 )
+            
 
             elif event_type == "webrtc_offer":
                 await self.channel_layer.group_send(
@@ -157,6 +166,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "call_type": event["call_type"],
             "from_user": event["from_user"],
             "to_user": event["to_user"]
+        }))
+
+    async def call_end(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "call_end",
+            "from_user": event["from_user"]
         }))
 
     async def webrtc_offer(self, event):

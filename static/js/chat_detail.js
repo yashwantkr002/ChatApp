@@ -2,7 +2,7 @@ function initChatDetail() {
   const dataEl = document.getElementById("chat-detail");
   if (!dataEl) return;
 
-  const { username, roomid, targetUser } = dataEl.dataset;
+  const { username, roomid, targetuser } = dataEl.dataset;
 
   let localStream, peerConnection;
   const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
@@ -25,7 +25,6 @@ function initChatDetail() {
   const socket = new WebSocket(
     `${wsScheme}://${window.location.host}/ws/chat/${roomid}/`
   );
-
 
   /* -------------------- Messaging -------------------- */
   if (sendButton && messageInput) {
@@ -71,7 +70,8 @@ function initChatDetail() {
       chatArea.scrollTop = chatArea.scrollHeight;
     }
   }
- /* -------------------- Call Handling -------------------- */
+
+  /* -------------------- Call Handling -------------------- */
   if (audioCallBtn) audioCallBtn.onclick = () => startCall("audio");
   if (videoCallBtn) videoCallBtn.onclick = () => startCall("video");
   if (endCallBtn) endCallBtn.onclick = endCall;
@@ -105,7 +105,7 @@ function initChatDetail() {
           JSON.stringify({
             type: "call",
             call_type: callType,
-            target_user: targetUser,
+            target_user: targetuser,
           })
         );
       })
@@ -130,6 +130,27 @@ function initChatDetail() {
     peerConnection.ontrack = (event) => {
       if (remoteVideo) remoteVideo.srcObject = event.streams[0];
     };
+  }
+
+  /* ----------- End Call for Both Users ----------- */
+  function endCall() {
+    // Close local connection
+    if (peerConnection) {
+      peerConnection.close();
+      peerConnection = null;
+    }
+    if (localStream) {
+      localStream.getTracks().forEach((track) => track.stop());
+    }
+    if (callScreen) callScreen.classList.add("hidden");
+
+    // Notify other user
+    socket.send(
+      JSON.stringify({
+        type: "call_end",
+        from: username,
+      })
+    );
   }
 
   function handleMediaMessage(data) {
@@ -192,17 +213,7 @@ function initChatDetail() {
     }
   }
 
-  function endCall() {
-    if (peerConnection) {
-      peerConnection.close();
-      peerConnection = null;
-    }
-    if (localStream) {
-      localStream.getTracks().forEach((track) => track.stop());
-    }
-    if (callScreen) callScreen.classList.add("hidden");
-  }
-
+  // -----------------Socket message handling------------------
   socket.onmessage = async function (e) {
     const data = JSON.parse(e.data);
 
@@ -232,6 +243,41 @@ function initChatDetail() {
             new RTCIceCandidate(data.candidate)
           );
         break;
+      case "call_end":
+        if (data.from !== username) {
+          // Remote user ended call → close it locally too
+          if (peerConnection) peerConnection.close();
+          if (localStream)
+            localStream.getTracks().forEach((track) => track.stop());
+          if (callScreen) callScreen.classList.add("hidden");
+          peerConnection = null;
+        }
+        break;
+      // --- Incoming Call Notification ---
+      case "notification":
+        if (data.event === "call") {
+          console.log(`Incoming ${data.call_type} call from ${data.from_user}`);
+
+          // Show popup UI (basic example)
+          if (
+            confirm(
+              `${data.from_user} is calling you (${data.call_type}). Accept?`
+            )
+          ) {
+            // Will accept when offer arrives
+          } else {
+            // Send reject signal
+            socket.send(
+              JSON.stringify({
+                type: "call_end",
+                from: username,
+                to: data.from_user,
+              })
+            );
+          }
+        }
+        break;
+      // --- Unknown events ---
       default:
         console.warn("Unhandled event:", data);
     }
@@ -263,6 +309,7 @@ function initChatDetail() {
       });
   }
 
+  /* ---------------- File Attachment Handling ---------------- */
   if (attachmentInput) {
     attachmentInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
@@ -283,7 +330,8 @@ function initChatDetail() {
         }
 
         if (document.getElementById("file-name"))
-          document.getElementById("file-name").textContent = file.name.split(".")[0];
+          document.getElementById("file-name").textContent =
+            file.name.split(".")[0];
         if (document.getElementById("file-type"))
           document.getElementById("file-type").textContent =
             file.type || "Unknown type";
@@ -320,7 +368,6 @@ function initChatDetail() {
         return;
       }
 
-      // Show "sending" animation in chat
       const tempId = `temp-${Date.now()}`;
       const sendingDiv = document.createElement("div");
       sendingDiv.className = "flex justify-end my-1";
@@ -332,7 +379,6 @@ function initChatDetail() {
       `;
       chatArea.scrollTop = chatArea.scrollHeight;
 
-      // Send file via WebSocket
       socket.send(
         JSON.stringify({
           type: "media",
@@ -345,7 +391,6 @@ function initChatDetail() {
         })
       );
 
-      // Clear preview
       if (document.getElementById("file-thumb"))
         document.getElementById("file-thumb").innerHTML = "";
       if (document.getElementById("file-name"))

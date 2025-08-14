@@ -1,6 +1,4 @@
-{% extends 'base.html' %}
-{% block start %}
-{% load static %}
+{% extends 'base.html' %} {% block start %} {% load static %}
 
 <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
@@ -11,7 +9,9 @@
     class="hidden md:flex w-1/3 lg:w-1/4 bg-white border-r border-gray-300 flex-col"
   >
     <!-- Header -->
-    <div class="p-4 flex items-center justify-between bg-[#00a63e] text-white shadow">
+    <div
+      class="p-4 flex items-center justify-between bg-[#00a63e] text-white shadow"
+    >
       <h1 class="text-lg font-semibold">Chat App</h1>
     </div>
 
@@ -32,7 +32,9 @@
           minlength="2"
           required
         />
-        <div id="search-loading" class="htmx-indicator hidden">Searching...</div>
+        <div id="search-loading" class="htmx-indicator hidden">
+          Searching...
+        </div>
       </form>
     </div>
 
@@ -41,24 +43,36 @@
     <!-- Contacts -->
     <div class="overflow-y-auto flex-1">
       {% for contact in contacts %}
-        <a
-          href="{% url 'chat_detail' contact.id %}"
-          class="flex items-center gap-4 px-4 py-3 border-b border-gray-200 hover:bg-gray-100 transition duration-150 {% if other_user.id == contact.id %}bg-gray-100{% endif %}"
+      <a
+        href="{% url 'chat_detail' contact.id %}"
+        class="flex items-center gap-4 px-4 py-3 border-b border-gray-200 hover:bg-gray-100 transition duration-150 {% if other_user.id == contact.id %}bg-gray-100{% endif %}"
+      >
+        {% if contact.profile_picture %}
+        <img
+          src="{{ contact.profile_picture }}"
+          alt="{{ contact.name }}"
+          class="w-12 h-12 rounded-full object-cover shadow-sm"
+        />
+        {% else %}
+        <div
+          class="w-12 h-12 rounded-full bg-[#00a63e] flex items-center justify-center text-white font-semibold text-lg shadow-sm"
         >
-          {% if contact.profile_picture %}
-            <img src="{{ contact.profile_picture }}" alt="{{ contact.name }}" class="w-12 h-12 rounded-full object-cover shadow-sm" />
-          {% else %}
-            <div class="w-12 h-12 rounded-full bg-[#00a63e] flex items-center justify-center text-white font-semibold text-lg shadow-sm">
-              {{ contact.first_name|slice:":1"|upper }}
-            </div>
-          {% endif %}
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-900 truncate">{{ contact.name }}</p>
-            <p class="text-xs text-gray-500 truncate">{{ contact.last_message|default:"No message yet" }}</p>
-          </div>
-        </a>
+          {{ contact.first_name|slice:":1"|upper }}
+        </div>
+        {% endif %}
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-900 truncate">
+            {{ contact.name }}
+          </p>
+          <p class="text-xs text-gray-500 truncate">
+            {{ contact.last_message|default:"No message yet" }}
+          </p>
+        </div>
+      </a>
       {% empty %}
-        <p class="text-center text-gray-500 mt-4">Start a conversation by searching for a contact.</p>
+      <p class="text-center text-gray-500 mt-4">
+        Start a conversation by searching for a contact.
+      </p>
       {% endfor %}
     </div>
   </div>
@@ -66,250 +80,259 @@
   <!-- Chat Area -->
   <div id="chat-area" class="w-full md:w-2/3 lg:w-3/4 flex flex-col">
     <!-- Chat Detail -->
-<div
-  id="chat-detail"
-  class="flex flex-col h-screen"
-  data-username="{{ request.user.username }}"
-  data-roomId="{{ room_id }}"
-
->
-  <!-- Header with Video/Audio Call and Options -->
-  <div
-    class="flex items-center justify-between p-3 bg-[#00a63e] text-white shadow"
-  >
-    <!-- Left Side: Back Button + User Info -->
-    <div class="flex items-center space-x-3">
-      <!-- Back Button (mobile only) -->
-
-      <!-- User Profile -->
-      {% if other_user.profile_picture %}
-      <img
-        src="{{ other_user.profile_picture }}"
-        alt="{{ other_user.first_name }}"
-        class="w-10 h-10 rounded-full object-cover"
-      />
-      {% else %}
+    <div
+      id="chat-detail"
+      class="flex flex-col h-screen"
+      data-username="{{ request.user.username }}"
+      data-roomId="{{ room_id }}"
+      data-targetUser="{{ other_user }}"
+    >
+      <!-- Header with Video/Audio Call and Options -->
       <div
-        class="w-10 h-10 rounded-full bg-white text-[#00a63e] flex items-center justify-center font-bold"
+        class="flex items-center justify-between p-3 bg-[#00a63e] text-white shadow"
       >
-        {{ other_user.first_name|slice:":1"|upper }}
-      </div>
-      {% endif %}
+        <!-- Left Side: Back Button + User Info -->
+        <div class="flex items-center space-x-3">
+          <!-- Back Button (mobile only) -->
 
-      <!-- Username -->
-      <p class="text-lg font-semibold">{{ other_user.first_name }}</p>
-    </div>
-
-    <!-- Right Side: Call & More Options -->
-    <div class="flex items-center space-x-4">
-      <!-- Audio Call -->
-      <button
-        id="audio-call-btn"
-        title="Audio Call"
-        class="hover:text-gray-200"
-      >
-        <i data-feather="phone" class="w-5 h-5"></i>
-      </button>
-
-      <!-- Video Call -->
-      <button
-        id="video-call-btn"
-        title="Video Call"
-        class="hover:text-gray-200"
-      >
-        <i data-feather="video" class="w-5 h-5"></i>
-      </button>
-
-      <!-- More Options -->
-      <div class="relative group">
-        <button title="Options">
-          <i data-feather="more-vertical" class="w-5 h-5"></i>
-        </button>
-        <div
-          class="absolute right-0 mt-2 w-40 bg-white text-black rounded shadow-lg hidden group-hover:block z-10"
-        >
-          <a href="#" class="block px-4 py-2 hover:bg-gray-100">Change Theme</a>
-          <a href="#" class="block px-4 py-2 hover:bg-gray-100"
-            >Mute Notifications</a
+          <!-- User Profile -->
+          {% if other_user.profile_picture %}
+          <img
+            src="{{ other_user.profile_picture }}"
+            alt="{{ other_user.first_name }}"
+            class="w-10 h-10 rounded-full object-cover"
+          />
+          {% else %}
+          <div
+            class="w-10 h-10 rounded-full bg-white text-[#00a63e] flex items-center justify-center font-bold"
           >
-          <a href="#" class="block px-4 py-2 hover:bg-gray-100">Report User</a>
+            {{ other_user.first_name|slice:":1"|upper }}
+          </div>
+          {% endif %}
+
+          <!-- Username -->
+          <p class="text-lg font-semibold">{{ other_user.first_name }}</p>
+        </div>
+
+        <!-- Right Side: Call & More Options -->
+        <div class="flex items-center space-x-4">
+          <!-- Audio Call -->
+          <button
+            id="audio-call-btn"
+            title="Audio Call"
+            class="hover:text-gray-200"
+          >
+            <i data-feather="phone" class="w-5 h-5"></i>
+          </button>
+
+          <!-- Video Call -->
+          <button
+            id="video-call-btn"
+            title="Video Call"
+            class="hover:text-gray-200"
+          >
+            <i data-feather="video" class="w-5 h-5"></i>
+          </button>
+
+          <!-- More Options -->
+          <div class="relative group">
+            <button title="Options">
+              <i data-feather="more-vertical" class="w-5 h-5"></i>
+            </button>
+            <div
+              class="absolute right-0 mt-2 w-40 bg-white text-black rounded shadow-lg hidden group-hover:block z-10"
+            >
+              <a href="#" class="block px-4 py-2 hover:bg-gray-100"
+                >Change Theme</a
+              >
+              <a href="#" class="block px-4 py-2 hover:bg-gray-100"
+                >Mute Notifications</a
+              >
+              <a href="#" class="block px-4 py-2 hover:bg-gray-100"
+                >Report User</a
+              >
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Messages Area -->
-  <!-- Scrollable chat area -->
-  <div
-    id="chat_area"
-    class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-[#f0f2f5]"
-  >
-    {% for message in messages %} {% if message.sender == request.user %}
-    <div class="flex justify-end">
+      <!-- Messages Area -->
+      <!-- Scrollable chat area -->
       <div
-        class="bg-[#00a63e] text-white px-4 py-2 rounded-xl text-sm max-w-xs"
+        id="chat_area"
+        class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-[#f0f2f5]"
       >
-        {{ message.content }}
-        <sub class="text-[10px] text-right mt-1 opacity-80 block">
-          {{ message.timestamp|time:"H:i" }}
-        </sub>
+        {% for message in messages %} {% if message.sender == request.user %}
+        <div class="flex justify-end">
+          <div
+            class="bg-[#00a63e] text-white px-4 py-2 rounded-xl text-sm max-w-xs"
+          >
+            {{ message.content }}
+            <sub class="text-[10px] text-right mt-1 opacity-80 block">
+              {{ message.timestamp|time:"H:i" }}
+            </sub>
+          </div>
+        </div>
+        {% else %}
+        <div class="flex justify-start">
+          <div
+            class="bg-white px-4 py-2 rounded-xl text-sm max-w-xs border border-gray-200"
+          >
+            {{ message.content }}
+            <sub class="text-[10px] text-right mt-1 opacity-60 block">
+              {{ message.timestamp|time:"H:i" }}
+            </sub>
+          </div>
+        </div>
+        {% endif %} {% endfor %}
+
+        <!-- File Preview Area -->
+        <!-- File Preview (fixed above message input) -->
+        <div
+          id="file-preview"
+          class="hidden fixed bottom-20 right-5 w-full max-w-sm md:max-w-md p-4 bg-white border border-gray-200 rounded-2xl shadow-lg flex flex-col md:flex-row items-center gap-4 animate-slide-up z-50"
+        >
+          <!-- Thumbnail -->
+          <div
+            id="file-thumb"
+            class="w-full md:w-[200px] h-[150px] bg-gray-100 border rounded-xl overflow-hidden flex items-center justify-center"
+          >
+            <!-- Image or icon will appear here -->
+          </div>
+
+          <!-- File Info -->
+          <div class="flex-1 text-center md:text-left">
+            <p
+              id="file-name"
+              class="truncate font-semibold text-gray-800 text-sm"
+            ></p>
+            <p id="file-type" class="text-xs text-gray-500 mt-1"></p>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex gap-2 mt-2 md:mt-0">
+            <button
+              id="remove-file"
+              class="px-3 py-1 text-xs font-medium text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition"
+            >
+              ✕
+            </button>
+            <button
+              id="sendMediafile"
+              class="px-3 py-1 text-xs font-medium text-green-600 bg-green-100 rounded-full hover:bg-green-200 transition"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+
+        <!-- Optional animation -->
+        <style>
+          @keyframes slide-up {
+            from {
+              transform: translateY(30px);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
+          }
+          .animate-slide-up {
+            animation: slide-up 0.3s ease-out forwards;
+          }
+        </style>
       </div>
+
+      <!-- Message Input -->
+      <div class="flex items-center gap-2 p-2 bg-white rounded-full shadow-sm">
+        <!-- Attachment Button -->
+        <label class="cursor-pointer text-gray-500 hover:text-[#00a63e] p-2">
+          <i data-feather="paperclip" class="w-5 h-5"></i>
+          <input
+            id="attachment-input"
+            type="file"
+            name="attachment"
+            class="hidden"
+          />
+        </label>
+
+        <!-- Message Input -->
+
+        <input
+          type="text"
+          id="message-input"
+          placeholder="Type a message"
+          class="flex-1 px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00a63e]"
+        />
+
+        <!-- Send Button -->
+        <button
+          id="send-button"
+          class="bg-[#00a63e] text-white p-2 rounded-full hover:bg-[#008a34] transition-colors"
+        >
+          <i data-feather="send" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <script>
+        feather.replace();
+      </script>
     </div>
-    {% else %}
-    <div class="flex justify-start">
-      <div
-        class="bg-white px-4 py-2 rounded-xl text-sm max-w-xs border border-gray-200"
+
+    {% comment %} video-Audio call {% endcomment %}
+
+    <!-- Call Screen Overlay -->
+    <div
+      id="call-screen"
+      class="hidden fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center"
+    >
+      <!-- Remote Video Fullscreen -->
+      <video
+        id="remoteVideo"
+        autoplay
+        playsinline
+        class="absolute inset-0 w-full h-full object-cover"
+      ></video>
+
+      <!-- Local Video Small Thumbnail -->
+      <video
+        id="localVideo"
+        autoplay
+        muted
+        playsinline
+        class="absolute top-4 left-4 w-32 h-20 md:w-48 md:h-28 rounded-lg border-2 border-white shadow-lg object-cover"
+      ></video>
+
+      <!-- End Call Button -->
+      <button
+        id="end-call"
+        class="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 transition duration-300 shadow-md ring-2 ring-white"
       >
-        {{ message.content }}
-        <sub class="text-[10px] text-right mt-1 opacity-60 block">
-          {{ message.timestamp|time:"H:i" }}
-        </sub>
-      </div>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-7 w-7 text-white"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
+          <path
+            d="M21 15.46l-5.27-2.11a1 1 0 0 0-1.09.27l-2.11 2.36a16.1 16.1 0 0 1-7.38-7.38l2.36-2.11a1 1 0 0 0 .27-1.09L8.54 3H3v5.54l2.28.95a18.1 18.1 0 0 0 12.23 12.23l.95 2.28H21v-5.54z"
+          />
+        </svg>
+      </button>
     </div>
-    {% endif %} {% endfor %}
 
-
-      <!-- File Preview Area -->
-<!-- File Preview (fixed above message input) -->
-<div id="file-preview"
-  class="hidden fixed bottom-20 right-5 w-full max-w-sm md:max-w-md p-4 bg-white border border-gray-200 rounded-2xl shadow-lg flex flex-col md:flex-row items-center gap-4 animate-slide-up z-50">
-
-  <!-- Thumbnail -->
-  <div id="file-thumb"
-    class="w-full md:w-[200px] h-[150px] bg-gray-100 border rounded-xl overflow-hidden flex items-center justify-center">
-    <!-- Image or icon will appear here -->
-  </div>
-
-  <!-- File Info -->
-  <div class="flex-1 text-center md:text-left">
-    <p id="file-name" class="truncate font-semibold text-gray-800 text-sm"></p>
-    <p id="file-type" class="text-xs text-gray-500 mt-1"></p>
-  </div>
-
-  <!-- Actions -->
-  <div class="flex gap-2 mt-2 md:mt-0">
-    <button id="remove-file"
-      class="px-3 py-1 text-xs font-medium text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition">
-      ✕
-    </button>
-    <button id="sendMediafile"
-      class="px-3 py-1 text-xs font-medium text-green-600 bg-green-100 rounded-full hover:bg-green-200 transition">
-      Send
-    </button>
-  </div>
-</div>
-
-<!-- Optional animation -->
-<style>
-@keyframes slide-up {
-  from { transform: translateY(30px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.animate-slide-up {
-  animation: slide-up 0.3s ease-out forwards;
-}
-</style>
-
-
-  </div>
-
-  <!-- Message Input -->
-  <div class="flex items-center gap-2 p-2 bg-white rounded-full shadow-sm">
-    <!-- Attachment Button -->
-    <label class="cursor-pointer text-gray-500 hover:text-[#00a63e] p-2">
-      <i data-feather="paperclip" class="w-5 h-5"></i>
-      <input
-        id="attachment-input"
-        type="file"
-        name="attachment"
-        class="hidden"
-      />
-    </label>
-
-    <!-- Message Input -->
-
-    <input
-      type="text"
-      id="message-input"
-      placeholder="Type a message"
-      class="flex-1 px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00a63e]"
-    />
-
-  
-
-
-
-    <!-- Send Button -->
-    <button
-      id="send-button"
-      class="bg-[#00a63e] text-white p-2 rounded-full hover:bg-[#008a34] transition-colors"
-    >
-      <i data-feather="send" class="w-5 h-5"></i>
-    </button>
-  </div>
-
-  <script>
-    feather.replace();
-  </script>
-</div>
-
-{% comment %} video-Audio call {% endcomment %}
-
-<!-- Call Screen Overlay -->
-<div
-  id="call-screen"
-  class="hidden fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col items-center justify-center px-4 py-6 space-y-4 md:space-y-6"
->
-  <!-- Video Containers -->
-  <div
-    class="flex flex-col md:flex-row items-center justify-center gap-4 w-full max-w-3xl"
-  >
-    <!-- Local Video -->
-    <video
-      id="localVideo"
-      autoplay
-      muted
-      playsinline
-      class="w-full md:w-1/2 aspect-video rounded-2xl border-2 border-green-400 shadow-lg object-cover"
-    ></video>
-
-    <!-- Remote Video -->
-    <video
-      id="remoteVideo"
-      autoplay
-      playsinline
-      class="w-full md:w-1/2 aspect-video rounded-2xl border-2 border-blue-400 shadow-lg object-cover"
-    ></video>
-  </div>
-
-  <!-- End Call Button -->
-  <button
-    id="end-call"
-    class="flex items-center justify-center w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 transition duration-300 shadow-md ring-2 ring-white"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      class="h-7 w-7 text-white"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-    >
-      <path
-        d="M21 15.46l-5.27-2.11a1 1 0 0 0-1.09.27l-2.11 2.36a16.1 16.1 0 0 1-7.38-7.38l2.36-2.11a1 1 0 0 0 .27-1.09L8.54 3H3v5.54l2.28.95a18.1 18.1 0 0 0 12.23 12.23l.95 2.28H21v-5.54z"
-      />
-    </svg>
-  </button>
-</div>
-<!-- Call Controls -->
+    <!-- Call Controls -->
   </div>
 </div>
 
 <script>
-  document.body.addEventListener('htmx:afterSwap', (e) => {
-    const chatArea = document.getElementById('chat-area');
-    const contactList = document.getElementById('contact-list');
+  document.body.addEventListener("htmx:afterSwap", (e) => {
+    const chatArea = document.getElementById("chat-area");
+    const contactList = document.getElementById("contact-list");
     if (window.innerWidth < 768) {
-      chatArea.classList.remove('hidden');
-      contactList.classList.add('hidden');
+      chatArea.classList.remove("hidden");
+      contactList.classList.add("hidden");
     }
   });
 </script>
