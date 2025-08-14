@@ -1,6 +1,7 @@
 from django.db import models
 from user.models import CustomUser
 
+
 class Group(models.Model):
     name = models.CharField(max_length=255)
     members = models.ManyToManyField(CustomUser, related_name='chat_groups')
@@ -10,14 +11,16 @@ class Group(models.Model):
     def __str__(self):
         return self.name
 
+
 class PrivateChat(models.Model):
     participants = models.ManyToManyField(CustomUser, related_name='private_chats')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def get_room_id(self):
-        # Get the two user IDs, sort them, and join with an underscore
+        # Create a unique room ID based on participant IDs
         user_ids = sorted(self.participants.values_list('id', flat=True))
         return f"room_{user_ids[0]}_{user_ids[1]}"
+
 
 class Message(models.Model):
     # Supports both private and group chat
@@ -32,6 +35,7 @@ class Message(models.Model):
     def __str__(self):
         return f"From {self.sender} at {self.timestamp}"
 
+
 class FileMessage(models.Model):
     sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     file = models.FileField(upload_to='uploads/')
@@ -45,10 +49,11 @@ class FileMessage(models.Model):
     def __str__(self):
         return f"{self.file_type} sent by {self.sender}"
 
+
 class Friend(models.Model):
     from_user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='sent_friend_requests')
     to_user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='received_friend_requests')
-    
+
     STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('accepted', 'Accepted'),
@@ -59,10 +64,22 @@ class Friend(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('from_user', 'to_user')  # Prevent duplicate friend requests
+        unique_together = ('from_user', 'to_user')
         ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.from_user} ➝ {self.to_user} ({self.status})"
 
 
+class UnreadMessageCount(models.Model):
+    """Tracks how many unread messages each user has from a chat."""
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='unread_counts')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True, blank=True)
+    private_chat = models.ForeignKey(PrivateChat, on_delete=models.CASCADE, null=True, blank=True)
+    count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ('user', 'group', 'private_chat')
+
+    def __str__(self):
+        return f"{self.user.username} -({self.count} unread)"

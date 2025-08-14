@@ -18,5 +18,6 @@ admin.site.register(Message)
 admin.site.register(FileMessage)
 admin.site.register(Friend)
 admin.site.register(PrivateChat)
+admin.site.register(UnreadMessageCount)
 
 
